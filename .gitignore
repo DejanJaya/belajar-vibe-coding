@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Bun
+.bun/
+bun.lockb
+bun.lock
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build & Logs
+dist/
+*.log
+*.tsbuildinfo
+
+# Drizzle
+drizzle/meta/
