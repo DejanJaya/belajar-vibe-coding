@@ -80,8 +80,10 @@ Server akan aktif di: `http://localhost:3000`
 | `GET` | `/` | Root info & greeting |
 | `GET` | `/health` | Health check server & status koneksi MySQL |
 | `POST` | `/api/users` | Registrasi user baru (password di-hash dengan bcrypt) |
+| `POST` | `/api/users/login` | Login user & generate UUID token session |
 
-### Contoh Request `POST /api/users`:
+### 1. Registrasi User (`POST /api/users`)
+**Request Body**:
 ```json
 {
   "name": "Eko",
@@ -90,17 +92,42 @@ Server akan aktif di: `http://localhost:3000`
 }
 ```
 
-#### Response Sukses (HTTP 200):
+**Response Sukses (HTTP 200)**:
 ```json
 {
   "data": "OK"
 }
 ```
 
-#### Response Error (HTTP 400):
+**Response Error (HTTP 400)**:
 ```json
 {
   "error": "Email sudah terdaftar"
+}
+```
+
+---
+
+### 2. Login User (`POST /api/users/login`)
+**Request Body**:
+```json
+{
+  "email": "eko@localhost",
+  "password": "rahasia"
+}
+```
+
+**Response Sukses (HTTP 200)**:
+```json
+{
+  "data": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Response Error (HTTP 400)**:
+```json
+{
+  "error": "Email atau password salah"
 }
 ```
 
@@ -116,14 +143,14 @@ Server akan aktif di: `http://localhost:3000`
 ├── .gitignore               # Git ignore rules
 ├── issue.md                 # Dokumentasi issue & planning
 ├── test/
-│   └── users-route.test.ts  # Automated test endpoint users
+│   └── users-route.test.ts  # Automated test endpoint users & login
 └── src/
     ├── index.ts             # Entry point server Elysia
     ├── db/
     │   ├── index.ts         # Koneksi MySQL & inisialisasi Drizzle ORM
-    │   └── schema.ts        # Definisi tabel / schema database (users)
+    │   └── schema.ts        # Definisi tabel users & sessions
     ├── services/
-    │   └── users-service.ts # Business logic registrasi user & hashing password
+    │   └── users-service.ts # Business logic registrasi & login user
     └── routes/
         └── users-route.ts   # Endpoint routing & validasi request users
 ```
