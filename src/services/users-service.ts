@@ -74,3 +74,34 @@ export const loginUser = async (input: LoginUserInput) => {
   // 5. Return token
   return { data: token };
 };
+
+export const getCurrentUser = async (token: string) => {
+  // 1. Cari data sesi di tabel sessions berdasarkan token
+  const [session] = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.token, token))
+    .limit(1);
+
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  // 2. Cari user di tabel users berdasarkan session.userId (tanpa field password)
+  const [user] = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      created_at: users.createdAt,
+    })
+    .from(users)
+    .where(eq(users.id, session.userId))
+    .limit(1);
+
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  return { data: user };
+};

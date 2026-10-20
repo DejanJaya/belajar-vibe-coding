@@ -142,3 +142,88 @@ describe("POST /api/users/login", () => {
     expect(data).toEqual({ error: "Email atau password salah" });
   });
 });
+
+describe("GET /api/users/current", () => {
+  const currentEmail = `current-${Date.now()}@localhost`;
+  const currentPassword = "passwordCurrent123";
+  let validToken = "";
+
+  it("should successfully get current user profile with valid token", async () => {
+    // 1. Register user
+    const regRes = await app.handle(
+      new Request("http://localhost:3000/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Current Eko",
+          email: currentEmail,
+          password: currentPassword,
+        }),
+      })
+    );
+    expect(regRes.status).toBe(200);
+
+    // 2. Login user
+    const loginRes = await app.handle(
+      new Request("http://localhost:3000/api/users/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: currentEmail,
+          password: currentPassword,
+        }),
+      })
+    );
+    expect(loginRes.status).toBe(200);
+    const loginData = await loginRes.json();
+    validToken = loginData.data;
+    expect(validToken).toBeDefined();
+
+    // 3. Get current user
+    const currentRes = await app.handle(
+      new Request("http://localhost:3000/api/users/current", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${validToken}`,
+        },
+      })
+    );
+
+    expect(currentRes.status).toBe(200);
+    const resBody = await currentRes.json();
+    expect(resBody.data).toBeDefined();
+    expect(resBody.data.id).toBeTypeOf("number");
+    expect(resBody.data.name).toBe("Current Eko");
+    expect(resBody.data.email).toBe(currentEmail);
+    expect(resBody.data.created_at).toBeDefined();
+    // Security check: password must not be present
+    expect(resBody.data.password).toBeUndefined();
+  });
+
+  it("should fail when Authorization header is missing", async () => {
+    const res = await app.handle(
+      new Request("http://localhost:3000/api/users/current", {
+        method: "GET",
+      })
+    );
+
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body).toEqual({ error: "Unauthorized" });
+  });
+
+  it("should fail when Authorization header token is invalid", async () => {
+    const res = await app.handle(
+      new Request("http://localhost:3000/api/users/current", {
+        method: "GET",
+        headers: {
+          Authorization: "Bearer invalid-uuid-token",
+        },
+      })
+    );
+
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body).toEqual({ error: "Unauthorized" });
+  });
+});

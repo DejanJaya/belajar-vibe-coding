@@ -1,7 +1,7 @@
-# Feature: Autentikasi Login User & Manajemen Session (User Login API)
+# Feature: API Get Current User (GET /api/users/current)
 
 ## 📌 Ringkasan Fitur
-Implementasi fitur login user untuk menghasilkan token sesi login (UUID) yang disimpan ke dalam tabel `sessions` di database MySQL. Fitur ini memverifikasi kecocokan email dan hash password bcrypt yang ada di tabel `users`.
+Implementasi endpoint untuk mendapatkan profil data user yang sedang login (`current user`) berdasarkan token otentikasi yang dikirimkan melalui header `Authorization: Bearer <token>`. Token ini akan diverifikasi terhadap data sesi di tabel `sessions`, lalu sistem mengambil informasi detail user dari tabel `users` (tanpa menyertakan hash password).
 
 Dokumen ini disusun sebagai panduan bertahap (step-by-step) untuk **Junior Programmer** atau **AI Model** pelaksana.
 
@@ -9,7 +9,7 @@ Dokumen ini disusun sebagai panduan bertahap (step-by-step) untuk **Junior Progr
 
 ## 🏗 Struktur Folder & Konvensi Penamaan File
 
-Pastikan struktur file tetap mengikuti standar arsitektur yang sudah ada di dalam `src/`:
+Pastikan struktur file tetap mengikuti arsitektur yang sudah berjalan di dalam folder `src/`:
 
 ```text
 src/
@@ -17,9 +17,9 @@ src/
 │   ├── index.ts              # Konfigurasi koneksi MySQL & instance Drizzle
 │   └── schema.ts             # Definisi skema tabel users & sessions
 ├── services/                 # Layer Business Logic
-│   └── users-service.ts      # Logic registrasi, login, verifikasi password & create session
+│   └── users-service.ts      # Logic registrasi, login, & get current user
 ├── routes/                   # Layer Routing & Validasi ElysiaJS
-│   └── users-route.ts        # Endpoint POST /api/users & POST /api/users/login
+│   └── users-route.ts        # Endpoint registrasi, login, & GET /api/users/current
 └── index.ts                  # Entry point server Elysia
 ```
 
@@ -31,43 +31,31 @@ src/
 
 ## 📋 Spesifikasi Kebutuhan
 
-### 1. Skema Tabel `sessions`
-Tambahkan tabel `sessions` pada MySQL dengan struktur kolom sebagai berikut:
+### 1. Spesifikasi Endpoint API
+- **URL**: `/api/users/current`
+- **Method**: `GET`
+- **Headers**:
+  - `Authorization`: `Bearer <token>` (token UUID sesi login yang tersimpan di tabel `sessions`)
 
-| Nama Kolom | Tipe Data | Keterangan |
-|---|---|---|
-| `id` | `INT` | Primary Key, Auto Increment |
-| `token` | `VARCHAR(255)` | Not Null (berisi UUID token session login) |
-| `user_id` | `INT` | Not Null, Foreign Key mengarah ke `users.id` |
-| `created_at` | `TIMESTAMP` | Not Null, Default `CURRENT_TIMESTAMP` |
-
-### 2. Spesifikasi Endpoint API Login
-- **URL**: `/api/users/login`
-- **Method**: `POST`
-- **Headers**: `Content-Type: application/json`
-
-#### Request Body
+### 2. Response Body (Success - HTTP 200)
+Jika token valid dan sesi ditemukan di database:
 ```json
 {
-  "email": "eko@localhost",
-  "password": "rahasia"
+  "data": {
+    "id": 1,
+    "name": "eko",
+    "email": "eko@localhost",
+    "created_at": "2026-10-20T11:00:00.000Z"
+  }
 }
 ```
+> ⚠️ **PENTING**: Kolom `password` **TIDAK BOLEH** disertakan dalam response data demi keamanan!
 
-#### Response Body (Success - HTTP 200)
-Mengembalikan token UUID yang berhasil digenerate dan disimpan di tabel `sessions`:
+### 3. Response Body (Error - HTTP 401)
+Jika header `Authorization` tidak dikirim, format token tidak valid, atau token tidak ditemukan di tabel `sessions`:
 ```json
 {
-  "data": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
-*(Nilai `"data"` adalah string token UUID sesi yang aktif).*
-
-#### Response Body (Error - HTTP 400)
-Jika email tidak ditemukan ATAU password salah (gunakan pesan umum demi keamanan):
-```json
-{
-  "error": "Email atau password salah"
+  "error": "Unauthorized"
 }
 ```
 
@@ -75,124 +63,101 @@ Jika email tidak ditemukan ATAU password salah (gunakan pesan umum demi keamanan
 
 ## 🛠 Tahapan Implementasi
 
-### Tahap 1: Tambahkan Skema Tabel `sessions` (`src/db/schema.ts`)
-1. Buka file `src/db/schema.ts`.
-2. Definisikan tabel `sessions` menggunakan Drizzle MySQL core:
-   ```ts
-   export const sessions = mysqlTable("sessions", {
-     id: int("id").autoincrement().primaryKey(),
-     token: varchar("token", { length: 255 }).notNull(),
-     userId: int("user_id")
-       .notNull()
-       .references(() => users.id),
-     createdAt: timestamp("created_at").defaultNow().notNull(),
-   });
-
-   export type Session = typeof sessions.$inferSelect;
-   export type NewSession = typeof sessions.$inferInsert;
-   ```
-3. Ekspor tipe `Session` dan `NewSession`.
-4. Jalankan sinkronisasi skema ke database MySQL:
-   ```bash
-   bun run db:push
-   ```
-
----
-
-### Tahap 2: Tambahkan Business Logic Login (`src/services/users-service.ts`)
+### Tahap 1: Tambahkan Business Logic di Service (`src/services/users-service.ts`)
 1. Buka file `src/services/users-service.ts`.
-2. Buat tipe/interface input login:
-   ```ts
-   export interface LoginUserInput {
-     email: string;
-     password: string;
-   }
-   ```
-3. Buat fungsi `loginUser(input: LoginUserInput)`:
-   - **Langkah 1 (Cari User)**: Cari user di tabel `users` berdasarkan email.
+2. Buat fungsi `getCurrentUser(token: string)`:
+   - **Langkah 1 (Cari Session)**: Cari data sesi di tabel `sessions` berdasarkan `token`:
+     ```ts
+     const [session] = await db
+       .select()
+       .from(sessions)
+       .where(eq(sessions.token, token))
+       .limit(1);
+
+     if (!session) {
+       throw new Error("Unauthorized");
+     }
+     ```
+   - **Langkah 2 (Cari User)**: Cari user di tabel `users` berdasarkan `session.userId`:
      ```ts
      const [user] = await db
-       .select()
+       .select({
+         id: users.id,
+         name: users.name,
+         email: users.email,
+         created_at: users.createdAt,
+       })
        .from(users)
-       .where(eq(users.email, input.email))
+       .where(eq(users.id, session.userId))
        .limit(1);
 
      if (!user) {
-       throw new Error("Email atau password salah");
+       throw new Error("Unauthorized");
      }
      ```
-   - **Langkah 2 (Verifikasi Password)**: Gunakan `Bun.password.verify` untuk membandingkan password input dengan hash di database:
-     ```ts
-     const isPasswordValid = await Bun.password.verify(input.password, user.password);
-     if (!isPasswordValid) {
-       throw new Error("Email atau password salah");
-     }
-     ```
-   - **Langkah 3 (Generate Token UUID)**: Buat token acak menggunakan `crypto.randomUUID()`:
-     ```ts
-     const token = crypto.randomUUID();
-     ```
-   - **Langkah 4 (Simpan ke Tabel Sessions)**: Insert token dan `userId` ke tabel `sessions`:
-     ```ts
-     await db.insert(sessions).values({
-       token,
-       userId: user.id,
-     });
-     ```
-   - **Langkah 5 (Return)**: Kembalikan objek `{ data: token }`.
+   - **Langkah 3 (Return Data)**: Kembalikan objek `{ data: user }`.
 
 ---
 
-### Tahap 3: Tambahkan Route Login di ElysiaJS (`src/routes/users-route.ts`)
+### Tahap 2: Tambahkan Endpoint di Routing ElysiaJS (`src/routes/users-route.ts`)
 1. Buka file `src/routes/users-route.ts`.
-2. Import fungsi `loginUser` dari `../services/users-service`.
-3. Tambahkan route handler `.post("/login", ...)` ke router `usersRoute`:
+2. Import fungsi `getCurrentUser` dari `../services/users-service`.
+3. Tambahkan route handler `.get("/current", ...)` ke dalam `usersRoute`:
    ```ts
-   .post(
-     "/login",
-     async ({ body, set }) => {
+   .get(
+     "/current",
+     async ({ headers, set }) => {
        try {
-         const result = await loginUser(body);
+         const authorization = headers["authorization"];
+         if (!authorization || !authorization.startsWith("Bearer ")) {
+           set.status = 401;
+           return { error: "Unauthorized" };
+         }
+
+         const token = authorization.slice(7).trim();
+         if (!token) {
+           set.status = 401;
+           return { error: "Unauthorized" };
+         }
+
+         const result = await getCurrentUser(token);
          set.status = 200;
-         return result; // mengembalikan { data: token }
+         return result;
        } catch (error: any) {
-         set.status = 400;
-         return {
-           error: error.message || "Email atau password salah",
-         };
+         set.status = 401;
+         return { error: "Unauthorized" };
        }
-     },
-     {
-       body: t.Object({
-         email: t.String({ minLength: 1, error: "Email tidak boleh kosong" }),
-         password: t.String({ minLength: 1, error: "Password tidak boleh kosong" }),
-       }),
      }
    )
    ```
-   *Catatan: Karena prefix router adalah `/api/users`, route `/login` secara otomatis menjadi `/api/users/login`.*
+   *Catatan: Karena prefix router adalah `/api/users`, route `/current` secara otomatis menjadi `/api/users/current`.*
 
 ---
 
-### Tahap 4: Buat Automated Tests & Pengujian (`test/users-route.test.ts`)
-1. Buka/tambahkan skenario pengujian di `test/users-route.test.ts`:
-   - **Skenario 1 (Login Sukses)**: Registrasi user terlebih dahulu, lalu lakukan `POST /api/users/login` dengan email dan password yang sesuai.
+### Tahap 3: Buat Automated Tests (`test/users-route.test.ts`)
+1. Buka file `test/users-route.test.ts`.
+2. Tambahkan test suite `describe("GET /api/users/current")`:
+   - **Skenario 1 (Sukses)**:
+     - Login user untuk mendapatkan token.
+     - Lakukan request `GET /api/users/current` dengan header `Authorization: Bearer <token>`.
      - Verifikasi status response `200`.
-     - Verifikasi response body memiliki properti `data` berupa string token UUID.
-     - Verifikasi token tersebut benar-benar tersimpan di tabel `sessions`.
-   - **Skenario 2 (Login Gagal - Email Tidak Terdaftar)**: Request dengan email acak yang belum terdaftar.
-     - Verifikasi status response `400`.
-     - Verifikasi response body `{"error": "Email atau password salah"}`.
-   - **Skenario 3 (Login Gagal - Password Salah)**: Request dengan email terdaftar tetapi password salah.
-     - Verifikasi status response `400`.
-     - Verifikasi response body `{"error": "Email atau password salah"}`.
+     - Verifikasi data `id`, `name`, `email`, dan `created_at` sesuai dengan data user.
+     - Pastikan `password` **tidak ada** di dalam response object.
+   - **Skenario 2 (Gagal - Tanpa Token / Header Authorization Kosong)**:
+     - Lakukan request `GET /api/users/current` tanpa menyertakan header `Authorization`.
+     - Verifikasi status response `401`.
+     - Verifikasi response body `{"error": "Unauthorized"}`.
+   - **Skenario 3 (Gagal - Token Salah / Tidak Ada di Database)**:
+     - Lakukan request `GET /api/users/current` dengan header `Authorization: Bearer token-acak-palsu`.
+     - Verifikasi status response `401`.
+     - Verifikasi response body `{"error": "Unauthorized"}`.
 
-2. Jalankan test otomatis:
+3. Jalankan pengujian otomatis:
    ```bash
    bun test
    ```
 
-3. Jalankan typecheck:
+4. Jalankan validasi tipe TypeScript:
    ```bash
    bun x tsc --noEmit
    ```
@@ -201,40 +166,41 @@ Jika email tidak ditemukan ATAU password salah (gunakan pesan umum demi keamanan
 
 ## 🧪 Contoh Pengujian Manual (cURL)
 
-1. **Login Sukses**:
+1. **Request Berhasil**:
    ```bash
-   curl -X POST http://localhost:3000/api/users/login \
-     -H "Content-Type: application/json" \
-     -d "{\"email\": \"eko@localhost\", \"password\": \"rahasia\"}"
+   curl -X GET http://localhost:3000/api/users/current \
+     -H "Authorization: Bearer 550e8400-e29b-41d4-a716-446655440000"
    ```
    *Response (200 OK):*
    ```json
    {
-     "data": "d1c25867-b50e-436f-b258-37299a4cbe6a"
+     "data": {
+       "id": 1,
+       "name": "Eko",
+       "email": "eko@localhost",
+       "created_at": "2026-10-20T11:00:00.000Z"
+     }
    }
    ```
 
-2. **Login Gagal (Password atau Email Salah)**:
+2. **Request Gagal (Token Tidak Valid / Tanpa Header)**:
    ```bash
-   curl -X POST http://localhost:3000/api/users/login \
-     -H "Content-Type: application/json" \
-     -d "{\"email\": \"eko@localhost\", \"password\": \"passwordsalah\"}"
+   curl -X GET http://localhost:3000/api/users/current
    ```
-   *Response (400 Bad Request):*
+   *Response (401 Unauthorized):*
    ```json
    {
-     "error": "Email atau password salah"
+     "error": "Unauthorized"
    }
    ```
 
 ---
 
 ## ✅ Kriteria Selesai (Definition of Done)
-- [x] Skema tabel `sessions` dibuat di `src/db/schema.ts` dengan kolom `id`, `token`, `user_id` (FK ke `users.id`), dan `created_at`.
-- [x] Skema tabel berhasil disinkronkan ke database MySQL via `bun run db:push`.
-- [x] Fungsi `loginUser` diimplementasikan di `src/services/users-service.ts` dengan verifikasi bcrypt dan pembuatan token UUID via `crypto.randomUUID()`.
-- [x] Endpoint `POST /api/users/login` diimplementasikan di `src/routes/users-route.ts`.
-- [x] Berhasil mengembalikan `{"data": "<token>"}` saat kredensial valid (HTTP 200).
-- [x] Berhasil mengembalikan `{"error": "Email atau password salah"}` saat kredensial tidak valid (HTTP 400).
-- [x] Data sesi login tersimpan di tabel `sessions`.
+- [x] Fungsi `getCurrentUser` diimplementasikan di `src/services/users-service.ts`.
+- [x] Endpoint `GET /api/users/current` diimplementasikan di `src/routes/users-route.ts`.
+- [x] Header `Authorization: Bearer <token>` diekstrak dan divalidasi dengan benar.
+- [x] Mengembalikan data user (`id`, `name`, `email`, `created_at`) dengan status HTTP 200 jika token valid.
+- [x] Kolom `password` tidak bocor / tidak disertakan dalam response body.
+- [x] Mengembalikan `{"error": "Unauthorized"}` dengan status HTTP 401 jika token tidak ada, salah, atau tidak ditemukan di tabel `sessions`.
 - [x] Lulus pengujian otomatis (`bun test`) dan validasi tipe TypeScript (`bun x tsc --noEmit`).
