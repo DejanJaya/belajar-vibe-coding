@@ -1,11 +1,11 @@
 import { Elysia } from "elysia";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { userRoutes } from "./routes/users";
+import { usersRoute } from "./routes/users-route";
 
 const port = Number(process.env.PORT) || 3000;
 
-const app = new Elysia()
+export const app = new Elysia()
   .get("/", () => ({
     name: "Belajar Vibe Coding API",
     version: "1.0.0",
@@ -32,7 +32,7 @@ const app = new Elysia()
       };
     }
   })
-  .use(userRoutes)
+  .use(usersRoute)
   .listen(port);
 
 console.log(`🦊 Elysia server is running at http://${app.server?.hostname}:${app.server?.port}`);

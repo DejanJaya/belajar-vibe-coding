@@ -198,11 +198,11 @@ Lakukan pengujian menggunakan `curl` atau REST Client:
 ---
 
 ## ✅ Kriteria Selesai (Definition of Done)
-- [ ] Tabel `users` memiliki kolom `id`, `name`, `email`, `password`, dan `created_at`.
-- [ ] Schema database berhasil disinkronkan ke MySQL (`bun run db:push`).
-- [ ] File `src/services/users-service.ts` menangani logic hashing password (bcrypt) dan pengecekan email unik.
-- [ ] File `src/routes/users-route.ts` menangani endpoint `POST /api/users` dan validasi schema request.
-- [ ] `POST /api/users` mengembalikan `{"data": "OK"}` jika sukses.
-- [ ] `POST /api/users` mengembalikan `{"error": "Email sudah terdaftar"}` jika email duplikat.
-- [ ] Password tersimpan dalam bentuk hash bcrypt.
-- [ ] Server berjalan normal dengan `bun run dev` dan lulus typecheck (`bun x tsc --noEmit`).
+- [x] Tabel `users` memiliki kolom `id`, `name`, `email`, `password`, dan `created_at`.
+- [x] Schema database berhasil disinkronkan ke MySQL (`bun run db:push`).
+- [x] File `src/services/users-service.ts` menangani logic hashing password (bcrypt) dan pengecekan email unik.
+- [x] File `src/routes/users-route.ts` menangani endpoint `POST /api/users` dan validasi schema request.
+- [x] `POST /api/users` mengembalikan `{"data": "OK"}` jika sukses.
+- [x] `POST /api/users` mengembalikan `{"error": "Email sudah terdaftar"}` jika email duplikat.
+- [x] Password tersimpan dalam bentuk hash bcrypt.
+- [x] Server berjalan normal dengan `bun run dev` dan lulus typecheck (`bun x tsc --noEmit`).

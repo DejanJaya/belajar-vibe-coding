@@ -64,6 +64,11 @@ Mode production:
 bun run start
 ```
 
+Menjalankan automated test:
+```bash
+bun test
+```
+
 Server akan aktif di: `http://localhost:3000`
 
 ---
@@ -74,16 +79,28 @@ Server akan aktif di: `http://localhost:3000`
 |---|---|---|
 | `GET` | `/` | Root info & greeting |
 | `GET` | `/health` | Health check server & status koneksi MySQL |
-| `GET` | `/users` | Mengambil seluruh data users |
-| `GET` | `/users/:id` | Mengambil user berdasarkan ID |
-| `POST` | `/users` | Menambahkan user baru (`name`, `email`) |
-| `DELETE`| `/users/:id` | Menghapus user berdasarkan ID |
+| `POST` | `/api/users` | Registrasi user baru (password di-hash dengan bcrypt) |
 
-### Contoh Request `POST /users`:
+### Contoh Request `POST /api/users`:
 ```json
 {
-  "name": "Dejan",
-  "email": "dejan@example.com"
+  "name": "Eko",
+  "email": "eko@localhost",
+  "password": "rahasia"
+}
+```
+
+#### Response Sukses (HTTP 200):
+```json
+{
+  "data": "OK"
+}
+```
+
+#### Response Error (HTTP 400):
+```json
+{
+  "error": "Email sudah terdaftar"
 }
 ```
 
@@ -92,17 +109,21 @@ Server akan aktif di: `http://localhost:3000`
 ## 📂 Struktur Project
 
 ```text
-├── drizzle.config.ts    # Konfigurasi Drizzle Kit
-├── package.json         # Dependensi & script Bun
-├── tsconfig.json        # Konfigurasi TypeScript
-├── .env.example         # Template konfigurasi environment
-├── .gitignore           # Git ignore rules
-├── issue.md             # High-level issue planning
+├── drizzle.config.ts        # Konfigurasi Drizzle Kit
+├── package.json             # Dependensi & script Bun
+├── tsconfig.json            # Konfigurasi TypeScript
+├── .env.example             # Template konfigurasi environment
+├── .gitignore               # Git ignore rules
+├── issue.md                 # Dokumentasi issue & planning
+├── test/
+│   └── users-route.test.ts  # Automated test endpoint users
 └── src/
-    ├── index.ts         # Entry point server Elysia
+    ├── index.ts             # Entry point server Elysia
     ├── db/
-    │   ├── index.ts     # Koneksi MySQL & inisialisasi Drizzle ORM
-    │   └── schema.ts    # Definisi tabel / schema database
+    │   ├── index.ts         # Koneksi MySQL & inisialisasi Drizzle ORM
+    │   └── schema.ts        # Definisi tabel / schema database (users)
+    ├── services/
+    │   └── users-service.ts # Business logic registrasi user & hashing password
     └── routes/
-        └── users.ts     # Endpoint routing & validasi untuk users
+        └── users-route.ts   # Endpoint routing & validasi request users
 ```
