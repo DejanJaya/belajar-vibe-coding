@@ -105,3 +105,16 @@ export const getCurrentUser = async (token: string) => {
 
   return { data: user };
 };
+
+export const logoutUser = async (token: string) => {
+  // Hapus session langsung dalam 1 query dan cek affectedRows
+  const [result] = await db
+    .delete(sessions)
+    .where(eq(sessions.token, token));
+
+  if (result.affectedRows === 0) {
+    throw new Error("Unauthorized");
+  }
+
+  return { data: "OK" };
+};
