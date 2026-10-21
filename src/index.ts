@@ -1,4 +1,4 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
@@ -52,6 +52,25 @@ export const app = new Elysia()
         summary: "Root Endpoint",
         description: "Mengembalikan informasi nama, versi, dan status dasar aplikasi.",
       },
+      response: {
+        200: t.Object(
+          {
+            name: t.String({
+              default: "Belajar Vibe Coding API",
+              description: "Nama aplikasi",
+            }),
+            version: t.String({
+              default: "1.0.0",
+              description: "Versi API",
+            }),
+            message: t.String({
+              default: "Server is up and running with ElysiaJS, Bun, Drizzle ORM, and MySQL!",
+              description: "Pesan status server",
+            }),
+          },
+          { description: "Informasi dasar aplikasi" }
+        ),
+      },
     }
   )
   .get(
@@ -82,6 +101,54 @@ export const app = new Elysia()
         tags: ["General"],
         summary: "Health Check",
         description: "Memeriksa uptime server dan memastikan koneksi ke database MySQL berjalan normal.",
+      },
+      response: {
+        200: t.Object(
+          {
+            status: t.String({
+              default: "ok",
+              description: "Status kesehatan server",
+            }),
+            uptime: t.Number({
+              default: 42.15,
+              description: "Waktu aktif server dalam detik",
+            }),
+            database: t.String({
+              default: "connected",
+              description: "Status koneksi database MySQL",
+            }),
+            timestamp: t.String({
+              default: "2026-10-21T05:00:00.000Z",
+              description: "Waktu pengecekan (ISO timestamp)",
+            }),
+          },
+          { description: "Server dan koneksi database MySQL berjalan normal" }
+        ),
+        503: t.Object(
+          {
+            status: t.String({
+              default: "error",
+              description: "Status error server",
+            }),
+            uptime: t.Number({
+              default: 42.15,
+              description: "Waktu aktif server dalam detik",
+            }),
+            database: t.String({
+              default: "disconnected",
+              description: "Status koneksi database MySQL",
+            }),
+            error: t.String({
+              default: "Database connection failed",
+              description: "Pesan error kegagalan koneksi",
+            }),
+            timestamp: t.String({
+              default: "2026-10-21T05:00:00.000Z",
+              description: "Waktu pengecekan (ISO timestamp)",
+            }),
+          },
+          { description: "Koneksi ke database terputus atau gagal" }
+        ),
       },
     }
   )
