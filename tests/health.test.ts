@@ -43,4 +43,35 @@ describe("Root & Health Check Endpoints", () => {
       expect(typeof body.timestamp).toBe("string");
     });
   });
+
+  describe("GET /swagger & /swagger/json", () => {
+    it("should serve the Swagger UI page at /swagger", async () => {
+      const res = await app.handle(
+        new Request("http://localhost:3000/swagger", {
+          method: "GET",
+        })
+      );
+
+      expect(res.status).toBe(200);
+    });
+
+    it("should return valid OpenAPI JSON specification at /swagger/json", async () => {
+      const res = await app.handle(
+        new Request("http://localhost:3000/swagger/json", {
+          method: "GET",
+        })
+      );
+
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as Record<string, any>;
+      expect(body.openapi).toBeDefined();
+      expect(body.info?.title).toBe("Belajar Vibe Coding API");
+      expect(
+        body.paths?.["/api/users/"] || body.paths?.["/api/users"]
+      ).toBeDefined();
+      expect(body.paths?.["/api/users/login"]).toBeDefined();
+      expect(body.paths?.["/api/users/current"]).toBeDefined();
+      expect(body.paths?.["/api/users/logout"]).toBeDefined();
+    });
+  });
 });

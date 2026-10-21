@@ -29,6 +29,7 @@ Aplikasi ini menyediakan layanan dasar autentikasi dan otorisasi pengguna yang m
 ### Daftar Library (`package.json`)
 #### Dependencies:
 - `elysia` (`^1.2.10`): Framework utama pembuatan routing HTTP, middleware, error handling, dan validasi skema (`t` / TypeBox).
+- `@elysiajs/swagger` (`^1.3.1`): Plugin OpenAPI/Swagger UI resmi untuk visualisasi dan pengujian interaktif endpoint API.
 - `drizzle-orm` (`^0.38.4`): Query builder & ORM TypeScript untuk MySQL.
 - `mysql2` (`^3.12.0`): Driver koneksi MySQL dengan dukungan *connection pooling* berbasis Promise (`mysql2/promise`).
 
@@ -141,10 +142,20 @@ Menyimpan token sesi autentikasi dari pengguna yang berhasil login.
 | :--- | :--- | :---: | :--- |
 | `GET` | `/` | Tidak | Informasi dasar aplikasi dan pesan sambutan |
 | `GET` | `/health` | Tidak | Pemeriksaan kesehatan server & status koneksi database MySQL |
+| `GET` | `/swagger` | Tidak | Dokumentasi interaktif API (Swagger / OpenAPI UI) |
+| `GET` | `/swagger/json` | Tidak | Dokumen spesifikasi OpenAPI dalam format JSON |
 | `POST` | `/api/users` | Tidak | Registrasi pengguna baru |
 | `POST` | `/api/users/login` | Tidak | Login pengguna & pembuatan *session token* |
 | `GET` | `/api/users/current` | **Bearer Token** | Mengambil profil pengguna yang sedang login |
 | `DELETE` | `/api/users/logout` | **Bearer Token** | Logout pengguna & menghapus *session token* |
+
+---
+
+### 📖 Dokumentasi Interaktif Swagger UI
+Aplikasi ini dilengkapi dengan Swagger UI yang memungkinkan developer untuk melihat dokumentasi skema request/response dan mencoba langsung seluruh endpoint API:
+- **Swagger UI**: Buka `http://localhost:3000/swagger` di browser.
+- **OpenAPI JSON**: Akses spesifikasi OpenAPI di `http://localhost:3000/swagger/json`.
+- **Autentikasi di Swagger UI**: Klik tombol **Authorize** (ikon gembok) dan masukkan token UUID yang didapatkan dari `POST /api/users/login` untuk menguji endpoint `GET /api/users/current` dan `DELETE /api/users/logout`.
 
 ---
 
@@ -393,8 +404,8 @@ bun test tests/users.test.ts
 ### Karakteristik & Cakupan Pengujian
 1. **Isolasi Data Otomatis (`beforeEach`)**:
    Setiap skenario pengujian (`it(...)`) didahului oleh pembersihan tabel `sessions` terlebih dahulu, kemudian tabel `users`. Hal ini menjaga konsistensi data, mematuhi *foreign key constraint*, dan memastikan tidak ada ketergantungan status (*state pollution*) antar skenario test.
-2. **Cakupan Skenario (`26 Test Scenarios`)**:
-   - `tests/health.test.ts` (2 skenario): Pengujian response metadata `GET /` dan pengecekan koneksi database `GET /health`.
+2. **Cakupan Skenario (`28 Test Scenarios`)**:
+   - `tests/health.test.ts` (4 skenario): Pengujian response metadata `GET /`, pengecekan koneksi database `GET /health`, penyajian halaman UI `GET /swagger`, dan spesifikasi OpenAPI JSON di `GET /swagger/json`.
    - `tests/users.test.ts` (24 skenario):
      - **Registrasi (`POST /api/users`)**: Sukses registrasi & verifikasi hash `bcrypt`, duplikasi email, field kosong (`name`, `email`, `password`), panjang karakter melebihi 255 karakter (300 karakter), dan field wajib tidak dikirim.
      - **Login (`POST /api/users/login`)**: Sukses login & verifikasi penyimpanan UUID di tabel `sessions`, email tidak terdaftar, password salah, field kosong, input melebihi 255 karakter, dan field kurang.

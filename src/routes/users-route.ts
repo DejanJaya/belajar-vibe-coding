@@ -50,6 +50,12 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
           error: "Password harus diisi dan maksimal 255 karakter",
         }),
       }),
+      detail: {
+        tags: ["Users"],
+        summary: "Registrasi Pengguna Baru",
+        description:
+          "Mendaftarkan akun pengguna baru dengan nama, email unik, dan password (di-hash dengan bcrypt).",
+      },
     }
   )
   .post(
@@ -79,6 +85,12 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
           error: "Password harus diisi dan maksimal 255 karakter",
         }),
       }),
+      detail: {
+        tags: ["Users"],
+        summary: "Login Pengguna",
+        description:
+          "Mengautentikasi pengguna dengan email dan password untuk mendapatkan session token UUID.",
+      },
     }
   )
   .get(
@@ -102,6 +114,15 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
         set.status = 500;
         return { error: "Internal Server Error" };
       }
+    },
+    {
+      detail: {
+        tags: ["Users"],
+        summary: "Ambil Profil Pengguna Saat Ini",
+        description:
+          "Mengambil data profil pengguna yang sedang login berdasarkan Bearer token.",
+        security: [{ bearerAuth: [] }],
+      },
     }
   )
   .delete(
@@ -125,5 +146,14 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
         set.status = 500;
         return { error: "Internal Server Error" };
       }
+    },
+    {
+      detail: {
+        tags: ["Users"],
+        summary: "Logout Pengguna",
+        description:
+          "Menghapus sesi token aktif dari database sehingga token tidak dapat digunakan kembali.",
+        security: [{ bearerAuth: [] }],
+      },
     }
   );
