@@ -56,6 +56,27 @@ describe("POST /api/users", () => {
     const data = await res.json();
     expect(data).toEqual({ error: "Email sudah terdaftar" });
   });
+
+  it("should fail when name exceeds 255 characters", async () => {
+    const longName = "A".repeat(300);
+    const res = await app.handle(
+      new Request("http://localhost:3000/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: longName,
+          email: `long-${Date.now()}@localhost`,
+          password: "rahasia",
+        }),
+      })
+    );
+
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBeDefined();
+    // Pastikan bukan error mentah dari MySQL yang bocor
+    expect(data.error).not.toContain("Data too long for column");
+  });
 });
 
 describe("POST /api/users/login", () => {
