@@ -1,6 +1,16 @@
 import { Elysia, t } from "elysia";
 import { getCurrentUser, loginUser, logoutUser, registerUser } from "../services/users-service";
 
+const extractBearerToken = (headers: Record<string, string | undefined>): string | null => {
+  const authorization = headers["authorization"];
+  if (!authorization || !authorization.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const token = authorization.slice(7).trim();
+  return token || null;
+};
+
 export const usersRoute = new Elysia({ prefix: "/api/users" })
   .onError(({ code, error, set }) => {
     if (code === "VALIDATION") {
@@ -55,13 +65,7 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
     "/current",
     async ({ headers, set }) => {
       try {
-        const authorization = headers["authorization"];
-        if (!authorization || !authorization.startsWith("Bearer ")) {
-          set.status = 401;
-          return { error: "Unauthorized" };
-        }
-
-        const token = authorization.slice(7).trim();
+        const token = extractBearerToken(headers);
         if (!token) {
           set.status = 401;
           return { error: "Unauthorized" };
@@ -71,8 +75,12 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
         set.status = 200;
         return result;
       } catch (error: any) {
-        set.status = 401;
-        return { error: "Unauthorized" };
+        if (error.message === "Unauthorized") {
+          set.status = 401;
+          return { error: "Unauthorized" };
+        }
+        set.status = 500;
+        return { error: "Internal Server Error" };
       }
     }
   )
@@ -80,13 +88,7 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
     "/logout",
     async ({ headers, set }) => {
       try {
-        const authorization = headers["authorization"];
-        if (!authorization || !authorization.startsWith("Bearer ")) {
-          set.status = 401;
-          return { error: "Unauthorized" };
-        }
-
-        const token = authorization.slice(7).trim();
+        const token = extractBearerToken(headers);
         if (!token) {
           set.status = 401;
           return { error: "Unauthorized" };
@@ -96,8 +98,12 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
         set.status = 200;
         return result;
       } catch (error: any) {
-        set.status = 401;
-        return { error: "Unauthorized" };
+        if (error.message === "Unauthorized") {
+          set.status = 401;
+          return { error: "Unauthorized" };
+        }
+        set.status = 500;
+        return { error: "Internal Server Error" };
       }
     }
   );
