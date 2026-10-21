@@ -34,9 +34,21 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
     },
     {
       body: t.Object({
-        name: t.String({ minLength: 1 }),
-        email: t.String({ minLength: 1 }),
-        password: t.String({ minLength: 1 }),
+        name: t.String({
+          minLength: 1,
+          maxLength: 255,
+          error: "Nama harus diisi dan maksimal 255 karakter",
+        }),
+        email: t.String({
+          minLength: 1,
+          maxLength: 255,
+          error: "Email harus diisi dan maksimal 255 karakter",
+        }),
+        password: t.String({
+          minLength: 1,
+          maxLength: 255,
+          error: "Password harus diisi dan maksimal 255 karakter",
+        }),
       }),
     }
   )
@@ -56,8 +68,16 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
     },
     {
       body: t.Object({
-        email: t.String({ minLength: 1, error: "Email tidak boleh kosong" }),
-        password: t.String({ minLength: 1, error: "Password tidak boleh kosong" }),
+        email: t.String({
+          minLength: 1,
+          maxLength: 255,
+          error: "Email harus diisi dan maksimal 255 karakter",
+        }),
+        password: t.String({
+          minLength: 1,
+          maxLength: 255,
+          error: "Password harus diisi dan maksimal 255 karakter",
+        }),
       }),
     }
   )
