@@ -105,3 +105,23 @@ export const getCurrentUser = async (token: string) => {
 
   return { data: user };
 };
+
+export const logoutUser = async (token: string) => {
+  // 1. Cari data sesi di tabel sessions berdasarkan token
+  const [session] = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.token, token))
+    .limit(1);
+
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  // 2. Hapus session dari tabel sessions
+  await db
+    .delete(sessions)
+    .where(eq(sessions.token, token));
+
+  return { data: "OK" };
+};

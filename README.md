@@ -82,6 +82,7 @@ Server akan aktif di: `http://localhost:3000`
 | `POST` | `/api/users` | Registrasi user baru (password di-hash dengan bcrypt) |
 | `POST` | `/api/users/login` | Login user & generate UUID token session |
 | `GET` | `/api/users/current` | Mengambil data profile user yang sedang login |
+| `DELETE` | `/api/users/logout` | Logout user & menghapus data session dari database |
 
 ### 1. Registrasi User (`POST /api/users`)
 **Request Body**:
@@ -159,6 +160,26 @@ Server akan aktif di: `http://localhost:3000`
 
 ---
 
+### 4. Logout User (`DELETE /api/users/logout`)
+**Headers**:
+- `Authorization`: `Bearer <token>`
+
+**Response Sukses (HTTP 200)**:
+```json
+{
+  "data": "OK"
+}
+```
+
+**Response Error (HTTP 401)**:
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+---
+
 ## 📂 Struktur Project
 
 ```text
@@ -169,14 +190,14 @@ Server akan aktif di: `http://localhost:3000`
 ├── .gitignore               # Git ignore rules
 ├── issue.md                 # Dokumentasi issue & planning
 ├── test/
-│   └── users-route.test.ts  # Automated test endpoint users, login, & current user
+│   └── users-route.test.ts  # Automated test endpoint users, login, current user, & logout
 └── src/
     ├── index.ts             # Entry point server Elysia
     ├── db/
     │   ├── index.ts         # Koneksi MySQL & inisialisasi Drizzle ORM
     │   └── schema.ts        # Definisi tabel users & sessions
     ├── services/
-    │   └── users-service.ts # Business logic registrasi, login, & get current user
+    │   └── users-service.ts # Business logic registrasi, login, get current user, & logout
     └── routes/
         └── users-route.ts   # Endpoint routing & validasi request users
 ```
