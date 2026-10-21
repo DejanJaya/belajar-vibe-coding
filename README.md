@@ -188,9 +188,9 @@ Server akan aktif di: `http://localhost:3000`
 ├── tsconfig.json            # Konfigurasi TypeScript
 ├── .env.example             # Template konfigurasi environment
 ├── .gitignore               # Git ignore rules
-├── issue.md                 # Dokumentasi issue & planning
-├── test/
-│   └── users-route.test.ts  # Automated test endpoint users, login, current user, & logout
+├── tests/
+│   ├── health.test.ts       # Automated test endpoint root & health check
+│   └── users.test.ts        # Automated test endpoint registrasi, login, current user, & logout
 └── src/
     ├── index.ts             # Entry point server Elysia
     ├── db/
